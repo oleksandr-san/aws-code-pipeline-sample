@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS SAM Lambda function example 
+  
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment name
+
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  DdbTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Sub tutorial-dynamodb-cicd-${Environment}
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      ProvisionedThroughput:
+        ReadCapacityUnits: 0
+        WriteCapacityUnits: 0
+
+  MainFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sam-function-example-${Environment}
+      CodeUri: src/
+      Handler: main.handler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          ddbTable: !Ref DdbTable
+      Policies:
+      - Statement:
+        - Sid: DynamoDBPolicy
+          Effect: Allow
+          Action:
+            - dynamodb:PutItem
+          Resource:
+            - !GetAtt DdbTable.Arn
+
+Outputs:
+  MainFunction:
+    Description: "Main Lambda Function ARN"
+    Value: !GetAtt MainFunction.Arn
